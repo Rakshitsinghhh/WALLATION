@@ -1,4 +1,86 @@
-# Getting Started with Create React App
+# Web Wallet - WALLATION
+
+## Getting Started
+
+Follow these steps to set up and run the React-based web wallet.
+
+### 1. Create a Directory
+
+Open a terminal and run:
+```sh
+mkdir web-wallet
+cd web-wallet
+```
+
+### 2. Clone the Repository
+
+```sh
+git clone https://github.com/your-username/web-wallet.git
+cd web-wallet
+```
+
+### 3. Install Dependencies
+
+Ensure you have Node.js and npm installed. Then run:
+```sh
+npm install
+```
+
+### 4. Run the Project
+
+Start the development server with:
+```sh
+npm start
+```
+This will open the wallet in your default browser at `http://localhost:3000/`.
+
+### 5. Build for Production
+
+To create an optimized build, run:
+```sh
+npm run build
+```
+This will generate a `build/` directory with static files.
+
+### 6. Environment Variables (Optional)
+
+Create a `.env` file in the root directory to store configuration:
+```sh
+REACT_APP_API_URL=https://api.example.com
+```
+
+### 7. Running Tests (If applicable)
+
+Run tests using:
+```sh
+npm test
+```
+
+### 8. Deployment
+
+To deploy on GitHub Pages, Netlify, or Vercel, configure your deployment settings and run the appropriate command.
+
+For example, to deploy to GitHub Pages:
+```sh
+git add .
+git commit -m "Deploy web wallet"
+git push origin main
+```
+
+### Contributing
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Commit changes (`git commit -m "Add new feature"`).
+4. Push to GitHub (`git push origin feature-branch`).
+5. Open a pull request.
+
+### License
+
+This project is licensed under the MIT License.
+
+
+# Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
