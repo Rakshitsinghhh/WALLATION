@@ -5,6 +5,9 @@ import { derivePath } from 'ed25519-hd-key';
 import { Keypair } from '@solana/web3.js';
 import nacl from "tweetnacl";
 import './App.css';
+import { keccak256 } from "@ethersproject/keccak256";
+
+const bs58 = require('bs58');
 
 global.Buffer = Buffer;
 
@@ -28,6 +31,42 @@ function App() {
     setStatusMessage(message);
     setTimeout(() => setStatusMessage(''), duration);
   };
+
+
+
+  const secretKeyShowerSol = (exp, i) => {
+      const seed = mnemonicToSeedSync(exp);
+      const path = `m/44'/501'/${i}'/0'`;
+      const derivedSeed = derivePath(path, seed.toString("hex")).key;
+      const keyPair = nacl.sign.keyPair.fromSeed(derivedSeed);
+      
+      // Convert private key to Base58
+      const privateKeyBase58 = bs58.encode(Buffer.from(keyPair.secretKey));
+  
+      console.log('Solana Private Key (Base58):', privateKeyBase58);
+  }
+  
+  const secretKeyShowerEth = (exp, j) => {
+      const seed = mnemonicToSeedSync(exp);
+      const path = `m/44'/60'/${j}'/0'`;
+      const derivedSeed = derivePath(path, seed.toString("hex")).key;
+      const keyPair = nacl.sign.keyPair.fromSeed(derivedSeed);
+      
+      // Convert private key to Base58
+      const privateKeyBase58 = bs58.encode(Buffer.from(keyPair.secretKey));
+  
+      console.log('Ethereum Private Key (Base58):', privateKeyBase58);
+  }
+  
+
+
+const solethSecretKeyDeriver = (exp, val, k) => {
+  if (val.toLowerCase() === 'sol') {
+      secretKeyShowerSol(exp, k);
+  } else {
+      secretKeyShowerEth(exp, k);
+  }
+};
 
   const mnemonicgen = () => {
     const newMnemonic = generateMnemonic(128);
@@ -111,15 +150,37 @@ function App() {
     showStatus(`Solana key #${i + 1} generated!`);
   };
 
+
+
   const ethkey = (exp, j) => {
-    const seed = mnemonicToSeedSync(exp);
-    const path = `m/44'/60'/${j}'/0'`;
-    const derivedSeed = derivePath(path, seed.toString("hex")).key;
-    const secret = nacl.sign.keyPair.fromSeed(derivedSeed).secretKey;
-    const publicKey = Keypair.fromSecretKey(secret).publicKey.toBase58();
-    setGeneratedKeys(prev => [...prev, { chain: 'ETH', key: publicKey, index: j }]);
-    showStatus(`Ethereum key #${j + 1} generated!`);
-  };
+      const seed = mnemonicToSeedSync(exp);
+      const path = `m/44'/60'/0'/0/${j}`;  
+      const derivedSeed = derivePath(path, seed.toString("hex")).key;
+      
+      // Generate key pair
+      const secret = nacl.sign.keyPair.fromSeed(derivedSeed).secretKey;
+      const keypair = Keypair.fromSecretKey(secret);
+      
+      // Convert public key to hex
+      let publicKey = Buffer.from(keypair.publicKey.toBytes()).toString("hex");
+  
+      // Ensure it's uncompressed (Ethereum uses 64-byte keys)
+      if (publicKey.length === 130 && publicKey.startsWith("04")) {
+          publicKey = publicKey.slice(2);  // Remove "04" prefix
+      }
+  
+      // Apply Keccak-256 hashing
+      const hash = keccak256(Buffer.from(publicKey, "hex"));
+  
+      // Extract the last 20 bytes (Ethereum address format)
+      const address = `0x${hash.slice(-40)}`;
+  
+      setGeneratedKeys(prev => [...prev, { chain: 'ETH', key: address, index: j }]);
+      showStatus(`Ethereum address #${j + 1} generated: ${address}`);
+    };
+  
+  
+
 
   const keygen = () => {
     if (!mnemonic) return showStatus("Generate a mnemonic first!");
@@ -203,7 +264,14 @@ function App() {
                       onClick={() => copyToClipboard(key.key)}
                       className="copy-icon"
                     >
-                      ⎘
+                      📋
+                    </button>
+                                        <button
+                      className="btn-primary"
+                      id="private-key"
+                      onClick={() => solethSecretKeyDeriver(mnemonic, key.chain.toLowerCase(), key.index)}
+                    >
+                      Show Private Key
                     </button>
                   </div>
                 </div>
