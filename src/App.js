@@ -6,6 +6,9 @@ import { Keypair } from '@solana/web3.js';
 import nacl from "tweetnacl";
 import './App.css';
 import { keccak256 } from "@ethersproject/keccak256";
+import { ethers } from "ethers";
+import { HDNodeWallet, Mnemonic, computeAddress } from "ethers";
+
 
 const bs58 = require('bs58');
 
@@ -152,32 +155,27 @@ const solethSecretKeyDeriver = (exp, val, k) => {
 
 
 
+
+
+
   const ethkey = (exp, j) => {
-      const seed = mnemonicToSeedSync(exp);
-      const path = `m/44'/60'/0'/0/${j}`;  
-      const derivedSeed = derivePath(path, seed.toString("hex")).key;
-      
-      // Generate key pair
-      const secret = nacl.sign.keyPair.fromSeed(derivedSeed).secretKey;
-      const keypair = Keypair.fromSecretKey(secret);
-      
-      // Convert public key to hex
-      let publicKey = Buffer.from(keypair.publicKey.toBytes()).toString("hex");
+      // Convert mnemonic to Mnemonic object (Ethers v6 fix)
+      const mnemonic = Mnemonic.fromPhrase(exp);
   
-      // Ensure it's uncompressed (Ethereum uses 64-byte keys)
-      if (publicKey.length === 130 && publicKey.startsWith("04")) {
-          publicKey = publicKey.slice(2);  // Remove "04" prefix
-      }
+      // Generate wallet using Ethereum derivation path
+      const wallet = HDNodeWallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${j}`);
   
-      // Apply Keccak-256 hashing
-      const hash = keccak256(Buffer.from(publicKey, "hex"));
+      // Extract private and public keys
+      const privateKey = wallet.privateKey;
+      const publicKey = wallet.publicKey;
   
-      // Extract the last 20 bytes (Ethereum address format)
-      const address = `0x${hash.slice(-40)}`;
+      // Derive Ethereum address (last 20 bytes of Keccak256 hash of public key)
+      const address = computeAddress(publicKey);
   
       setGeneratedKeys(prev => [...prev, { chain: 'ETH', key: address, index: j }]);
       showStatus(`Ethereum address #${j + 1} generated: ${address}`);
-    };
+  };
+  
   
   
 
