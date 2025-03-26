@@ -34,27 +34,6 @@ npm start
 ```
 This will open the wallet in your default browser at `http://localhost:3000/`.
 
-### 5. Build for Production
-
-To create an optimized build, run:
-```sh
-npm run build
-```
-This will generate a `build/` directory with static files.
-
-### 6. Environment Variables (Optional)
-
-Create a `.env` file in the root directory to store configuration:
-```sh
-REACT_APP_API_URL=https://api.example.com
-```
-
-### 7. Running Tests (If applicable)
-
-Run tests using:
-```sh
-npm test
-```
 
 ### 8. Deployment
 
