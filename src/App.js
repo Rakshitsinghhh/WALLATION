@@ -7,7 +7,7 @@ import nacl from "tweetnacl";
 import './App.css';
 import { keccak256 } from "@ethersproject/keccak256";
 import { ethers } from "ethers";
-import { HDNodeWallet, Mnemonic, computeAddress } from "ethers";
+import { HDNodeWallet, Mnemonic, computeAddress, computePublicKey } from 'ethers';
 
 
 const bs58 = require('bs58');
@@ -154,28 +154,38 @@ const solethSecretKeyDeriver = (exp, val, k) => {
   };
 
 
-
-
-
+  
 
   const ethkey = (exp, j) => {
-      // Convert mnemonic to Mnemonic object (Ethers v6 fix)
-      const mnemonic = Mnemonic.fromPhrase(exp);
-  
-      // Generate wallet using Ethereum derivation path
-      const wallet = HDNodeWallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${j}`);
-  
-      // Extract private and public keys
-      const privateKey = wallet.privateKey;
-      const publicKey = wallet.publicKey;
-  
-      // Derive Ethereum address (last 20 bytes of Keccak256 hash of public key)
-      const address = computeAddress(publicKey);
-  
-      setGeneratedKeys(prev => [...prev, { chain: 'ETH', key: address, index: j }]);
-      showStatus(`Ethereum address #${j + 1} generated: ${address}`);
+    // Convert mnemonic to Mnemonic object
+    const mnemonicObj = ethers.Mnemonic.fromPhrase(exp);
+    
+    // Generate wallet using Ethereum derivation path
+    const path = `m/44'/60'/0'/0/${j}`;
+    const wallet = ethers.HDNodeWallet.fromMnemonic(mnemonicObj, path);
+    
+    // Get the public key (compressed by default in Ethers v6)
+    const publicKey = wallet.publicKey;
+    
+    // Convert to uncompressed public key (65 bytes, starts with 0x04)
+    // Note: In Ethers v6, you might need to manually handle this
+    // Here's a workaround if uncompressed isn't directly available:
+    const signingKey = new ethers.SigningKey(wallet.privateKey);
+    const uncompressedPublicKey = signingKey.publicKey; // This should be uncompressed
+    
+    // Extract XY coordinates (remove 0x04 prefix if present)
+    const pubKeyBytes = ethers.getBytes(uncompressedPublicKey);
+    const xyBytes = pubKeyBytes.slice(1); // Remove first byte (0x04)
+    
+    // Hash the 64-byte XY coordinates with Keccak-256
+    const hash = ethers.keccak256(xyBytes);
+    
+    // Get last 20 bytes (40 hex characters) as address
+    const ethAddress = '0x' + hash.slice(-40);
+    
+    setGeneratedKeys(prev => [...prev, { chain: 'ETH', key: ethAddress, index: j }]);
+    showStatus(`Ethereum address #${j + 1} generated: ${ethAddress}`);
   };
-  
   
   
 
