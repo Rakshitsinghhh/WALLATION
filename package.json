@@ -9,6 +9,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^13.5.0",
+    "alchemy-sdk": "^3.5.6",
     "bip39": "^3.1.0",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",

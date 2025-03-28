@@ -10,6 +10,18 @@
   --error-color: #ef4444;
 }
 
+.balance
+{
+  position: absolute;
+  padding-left: 800px;
+}
+
+.refresh-button{
+
+  position: absolute;
+  right: 430px
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

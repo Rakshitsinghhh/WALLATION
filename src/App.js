@@ -8,6 +8,9 @@ import './App.css';
 import { keccak256 } from "@ethersproject/keccak256";
 import { ethers } from "ethers";
 import { HDNodeWallet, Mnemonic, computeAddress, computePublicKey } from 'ethers';
+const { Connection, PublicKey, clusterApiUrl } = require("@solana/web3.js");
+const { Alchemy, Network } = require("alchemy-sdk");
+
 
 
 const bs58 = require('bs58');
@@ -63,13 +66,13 @@ function App() {
   
 
 
-const solethSecretKeyDeriver = (exp, val, k) => {
-  if (val.toLowerCase() === 'sol') {
-      secretKeyShowerSol(exp, k);
-  } else {
-      secretKeyShowerEth(exp, k);
-  }
-};
+  const solethSecretKeyDeriver = (exp, val, k) => {
+    if (val.toLowerCase() === 'sol') {
+        secretKeyShowerSol(exp, k);
+    } else {
+        secretKeyShowerEth(exp, k);
+    }
+  };
 
   const mnemonicgen = () => {
     const newMnemonic = generateMnemonic(128);
@@ -186,8 +189,39 @@ const solethSecretKeyDeriver = (exp, val, k) => {
     setGeneratedKeys(prev => [...prev, { chain: 'ETH', key: ethAddress, index: j }]);
     showStatus(`Ethereum address #${j + 1} generated: ${ethAddress}`);
   };
-  
-  
+
+
+
+
+// Configure the Alchemy SDK
+const config = {
+  apiKey: "cjDnLaxtrt-eNy-XELSIMaQ18ITCTByQ", // Replace with your API key
+  network: Network.ETH_MAINNET, // Use Ethereum Mainnet
+};
+
+// Create an Alchemy instance
+const alchemy = new Alchemy(config);
+let ethbalance=0;
+const ethbal = async () => {
+  try {
+    // Replace with any Ethereum wallet address
+    let walletAddress = "0x5c85a35cB3Ae24676bC715d8E745b7B54887643a";
+
+    // Fetch the ETH balance
+    let balance = await alchemy.core.getBalance(walletAddress, "latest");
+
+    // Convert from Wei to ETH
+    let finalBalance = Number(balance) / 10 ** 18;
+
+    console.log(`ETH Balance: ${finalBalance} ETH`);
+    ethbalance=finalBalance;
+  } catch (error) {
+    console.error("Error fetching ETH balance:", error);
+  }
+};
+
+// Execute the function
+setInterval(ethbal,7000);
 
 
   const keygen = () => {
@@ -274,12 +308,18 @@ const solethSecretKeyDeriver = (exp, val, k) => {
                     >
                       📋
                     </button>
-                                        <button
+                    <button
                       className="btn-primary"
                       id="private-key"
                       onClick={() => solethSecretKeyDeriver(mnemonic, key.chain.toLowerCase(), key.index)}
                     >
                       Show Private Key
+                    </button>
+                    <h1 className='balance'>
+                      0.00
+                    </h1>
+                    <button className='refresh-button'>
+                      ⟳
                     </button>
                   </div>
                 </div>
