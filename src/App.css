@@ -166,6 +166,57 @@
   margin-bottom: 0.5rem;
 }
 
+/* Add these styles */
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.balance-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.private-key-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.key-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.refresh-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+}
+
+.refresh-button:hover {
+  opacity: 0.8;
+}
+
 .key-chain {
   display: inline-block;
   padding: 0.25rem 0.75rem;

@@ -192,37 +192,37 @@ function App() {
 
 
 
+  const config = {
+    apiKey: "cjDnLaxtrt-eNy-XELSIMaQ18ITCTBy", // Replace with your API key
+    network: Network.ETH_MAINNET, // Use Ethereum Mainnet
+  };
+  const alchemy = new Alchemy(config);
+  let ethbalance = 0;
+  
+  const ethbal = async (key) => {
+    try {
+      const balance = await alchemy.core.getBalance(key, "latest");
+      const ethBalance = Number(balance) / 10 ** 18;
+  
+      console.log(`ETH Balance for ${key}: ${ethBalance} ETH`);
+  
+      const bal = document.querySelector(".balance"); // Select the h1 element by class
+      if (bal) {
+        bal.innerText = ethBalance + " ETH"; // Update text correctly
+        showStatus("Refreshed");
 
-// Configure the Alchemy SDK
-const config = {
-  apiKey: "cjDnLaxtrt-eNy-XELSIMaQ18ITCTByQ", // Replace with your API key
-  network: Network.ETH_MAINNET, // Use Ethereum Mainnet
-};
+      }
+    } catch (error) {
+      console.error(`Error fetching ETH balance for ${key}:`, error);
+    }
+  };
+  
 
-// Create an Alchemy instance
-const alchemy = new Alchemy(config);
-let ethbalance=0;
-const ethbal = async () => {
-  try {
-    // Replace with any Ethereum wallet address
-    let walletAddress = "0x5c85a35cB3Ae24676bC715d8E745b7B54887643a";
 
-    // Fetch the ETH balance
-    let balance = await alchemy.core.getBalance(walletAddress, "latest");
-
-    // Convert from Wei to ETH
-    let finalBalance = Number(balance) / 10 ** 18;
-
-    console.log(`ETH Balance: ${finalBalance} ETH`);
-    ethbalance=finalBalance;
-  } catch (error) {
-    console.error("Error fetching ETH balance:", error);
-  }
-};
-
-// Execute the function
-setInterval(ethbal,7000);
-
+  const solbal = () => {
+    // Implement SOL balance fetching logic if needed
+  };
+  
 
   const keygen = () => {
     if (!mnemonic) return showStatus("Generate a mnemonic first!");
@@ -315,10 +315,19 @@ setInterval(ethbal,7000);
                     >
                       Show Private Key
                     </button>
-                    <h1 className='balance'>
-                      0.00
+                    <h1 className="balance">
+                      0.00 ETH
                     </h1>
-                    <button className='refresh-button'>
+                    <button 
+                      className="refresh-button" 
+                      onClick={() => {
+                        if (key.chain.toLowerCase() === 'sol') {  // FIXED: Added ()
+                          solbal(key.key, key.index);
+                        } else {
+                          ethbal(key.key);  // FIXED: Removed index argument
+                        }
+                      }}
+                    >
                       ⟳
                     </button>
                   </div>
