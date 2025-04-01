@@ -198,7 +198,7 @@ function App() {
 
 
   const config = {
-    apiKey: "cjDnLaxtrt-eNy-XELSIMaQ18ITCTByQ", // Replace with your API key
+    apiKey: "cjDnLaxtrt-eNy-", // Replace with your API key
     network: Network.ETH_MAINNET, // Use Ethereum Mainnet
   };
   const alchemy = new Alchemy(config);
