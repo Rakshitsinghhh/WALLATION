@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 import { derivePath } from 'ed25519-hd-key';
 import { Keypair } from '@solana/web3.js';
 import nacl from "tweetnacl";
+import * as bip39 from "bip39";
 import './App.css';
 import { keccak256 } from "@ethersproject/keccak256";
 import { ethers } from "ethers";
@@ -52,17 +53,22 @@ function App() {
       console.log('Solana Private Key (Base58):', privateKeyBase58);
   }
   
-  const secretKeyShowerEth = (exp, j) => {
-      const seed = mnemonicToSeedSync(exp);
-      const path = `m/44'/60'/${j}'/0'`;
-      const derivedSeed = derivePath(path, seed.toString("hex")).key;
-      const keyPair = nacl.sign.keyPair.fromSeed(derivedSeed);
-      
-      // Convert private key to Base58
-      const privateKeyBase58 = bs58.encode(Buffer.from(keyPair.secretKey));
-  
-      console.log('Ethereum Private Key (Base58):', privateKeyBase58);
-  }
+  const secretKeyShowerEth = (mnemonic, j) => {
+    if (!Mnemonic.isValidMnemonic(mnemonic)) {
+        console.error("⚠️ Invalid mnemonic");
+        return;
+    }
+
+    // Derive the root node from the mnemonic
+    const rootNode = HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(mnemonic));
+
+    // Correct path (no "m/" at the beginning)
+    const path = `m/44'/60'/0'/0/${j}`;
+    const childNode = rootNode.deriveChild(j);
+
+    console.log("Ethereum Address:", childNode.address);
+    console.log("Ethereum Private Key:", childNode.privateKey);
+  };
   
 
 
@@ -191,9 +197,8 @@ function App() {
   };
 
 
-
   const config = {
-    apiKey: "cjDnLaxtrt-eNy-XELSIMaQ18ITCTBy", // Replace with your API key
+    apiKey: "cjDnLaxtrt-eNy-XELSIMaQ18ITCTByQ", // Replace with your API key
     network: Network.ETH_MAINNET, // Use Ethereum Mainnet
   };
   const alchemy = new Alchemy(config);
