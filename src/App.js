@@ -197,16 +197,21 @@ function App() {
   };
 
 
+  // Use a public RPC instead of an API key
   const config = {
-    apiKey: "cjDnLaxtrt-eNy-", // Replace with your API key
-    network: Network.ETH_MAINNET, // Use Ethereum Mainnet
+    network: Network.ETH_MAINNET, // Ethereum Mainnet
+    url: "https://ethereum.publicnode.com" // Public RPC (No API Key Required)
   };
+  
   const alchemy = new Alchemy(config);
+  
   let ethbalance = 0;
   
   const ethbal = async (key) => {
+    showStatus("Please wait");
     try {
-      const balance = await alchemy.core.getBalance(key, "latest");
+      const provider = new ethers.JsonRpcProvider(config.url);
+      const balance = await provider.getBalance(key);
       const ethBalance = Number(balance) / 10 ** 18;
   
       console.log(`ETH Balance for ${key}: ${ethBalance} ETH`);
@@ -215,14 +220,13 @@ function App() {
       if (bal) {
         bal.innerText = ethBalance + " ETH"; // Update text correctly
         showStatus("Refreshed");
-
       }
     } catch (error) {
       console.error(`Error fetching ETH balance for ${key}:`, error);
     }
   };
   
-
+  
 
   const solbal = () => {
     // Implement SOL balance fetching logic if needed
@@ -321,7 +325,7 @@ function App() {
                       Show Private Key
                     </button>
                     <h1 className="balance">
-                      0.00 ETH
+                    Fetch
                     </h1>
                     <button 
                       className="refresh-button" 
