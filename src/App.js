@@ -228,8 +228,27 @@ function App() {
   
   
 
-  const solbal = () => {
-    // Implement SOL balance fetching logic if needed
+  // Use a free public Solana RPC (No API Key Required)
+  const SOLANA_RPC_URL = "https://solana.publicnode.com";
+  const connection = new Connection(SOLANA_RPC_URL);
+  
+  const solBal = async (address) => {
+    showStatus("Please wait...");
+    try {
+      const publicKey = new PublicKey(address);
+      const balance = await connection.getBalance(publicKey);
+      const solBalance = balance / 10 ** 9; // Convert from lamports to SOL
+  
+      console.log(`SOL Balance for ${address}: ${solBalance} SOL`);
+  
+      const bal = document.querySelector(".balance");
+      if (bal) {
+        bal.innerText = solBalance + " SOL"; // Update text correctly
+        showStatus("Refreshed");
+      }
+    } catch (error) {
+      console.error(`Error fetching SOL balance for ${address}:`, error);
+    }
   };
   
 
@@ -331,7 +350,7 @@ function App() {
                       className="refresh-button" 
                       onClick={() => {
                         if (key.chain.toLowerCase() === 'sol') {  // FIXED: Added ()
-                          solbal(key.key, key.index);
+                          solBal(key.key);
                         } else {
                           ethbal(key.key);  // FIXED: Removed index argument
                         }
