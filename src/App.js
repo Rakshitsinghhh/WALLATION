@@ -164,7 +164,7 @@ function App() {
       index: i,
       balance: null  // Initialize balance
     }]);
-    showStatus(`Solana key #${i + 1} generated!`);
+    showStatus(`Solana key generated !`);
   };
 
 
@@ -203,7 +203,7 @@ function App() {
       index: j,
       balance: null  // Initialize balance
     }]);
-    showStatus(`Ethereum address #${j + 1} generated: ${ethAddress}`);
+    showStatus(`Ethereum address generated !`);
   };
 
 
