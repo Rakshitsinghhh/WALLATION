@@ -158,7 +158,12 @@ function App() {
     const derivedSeed = derivePath(path, seed.toString("hex")).key;
     const secret = nacl.sign.keyPair.fromSeed(derivedSeed).secretKey;
     const publicKey = Keypair.fromSecretKey(secret).publicKey.toBase58();
-    setGeneratedKeys(prev => [...prev, { chain: 'SOL', key: publicKey, index: i }]);
+    setGeneratedKeys(prev => [...prev, { 
+      chain: 'SOL', 
+      key: publicKey, 
+      index: i,
+      balance: null  // Initialize balance
+    }]);
     showStatus(`Solana key #${i + 1} generated!`);
   };
 
@@ -192,7 +197,12 @@ function App() {
     // Get last 20 bytes (40 hex characters) as address
     const ethAddress = '0x' + hash.slice(-40);
     
-    setGeneratedKeys(prev => [...prev, { chain: 'ETH', key: ethAddress, index: j }]);
+    setGeneratedKeys(prev => [...prev, { 
+      chain: 'ETH', 
+      key: ethAddress, 
+      index: j,
+      balance: null  // Initialize balance
+    }]);
     showStatus(`Ethereum address #${j + 1} generated: ${ethAddress}`);
   };
 
@@ -207,22 +217,24 @@ function App() {
   
   let ethbalance = 0;
   
-  const ethbal = async (key) => {
+  const ethbal = async (address, chain, index) => {
     showStatus("Please wait");
     try {
       const provider = new ethers.JsonRpcProvider(config.url);
-      const balance = await provider.getBalance(key);
-      const ethBalance = Number(balance) / 10 ** 18;
-  
-      console.log(`ETH Balance for ${key}: ${ethBalance} ETH`);
-  
-      const bal = document.querySelector(".balance"); // Select the h1 element by class
-      if (bal) {
-        bal.innerText = ethBalance + " ETH"; // Update text correctly
-        showStatus("Refreshed");
-      }
+      const balance = await provider.getBalance(address);
+      const ethBalance = (Number(balance) / 10 ** 18).toFixed(4);
+
+      // Update specific key's balance
+      setGeneratedKeys(prevKeys => 
+        prevKeys.map(k => 
+          k.chain === chain && k.index === index ? 
+          { ...k, balance: `${ethBalance} ETH` } : 
+          k
+        )
+      );
+      showStatus("Refreshed");
     } catch (error) {
-      console.error(`Error fetching ETH balance for ${key}:`, error);
+      console.error(`Error fetching ETH balance for ${address}:`, error);
     }
   };
   
@@ -232,20 +244,22 @@ function App() {
   const SOLANA_RPC_URL = "https://solana.publicnode.com";
   const connection = new Connection(SOLANA_RPC_URL);
   
-  const solBal = async (address) => {
+  const solBal = async (address, chain, index) => {
     showStatus("Please wait...");
     try {
       const publicKey = new PublicKey(address);
       const balance = await connection.getBalance(publicKey);
-      const solBalance = balance / 10 ** 9; // Convert from lamports to SOL
-  
-      console.log(`SOL Balance for ${address}: ${solBalance} SOL`);
-  
-      const bal = document.querySelector(".balance");
-      if (bal) {
-        bal.innerText = solBalance + " SOL"; // Update text correctly
-        showStatus("Refreshed");
-      }
+      const solBalance = (balance / 10 ** 9).toFixed(4); // Convert from lamports to SOL
+
+      // Update specific key's balance
+      setGeneratedKeys(prevKeys => 
+        prevKeys.map(k => 
+          k.chain === chain && k.index === index ? 
+          { ...k, balance: `${solBalance} SOL` } : 
+          k
+        )
+      );
+      showStatus("Refreshed");
     } catch (error) {
       console.error(`Error fetching SOL balance for ${address}:`, error);
     }
@@ -273,13 +287,13 @@ function App() {
       <header className="wallet-header">
         <h1 className="wallet-title">WALLATION</h1>
       </header>
-
+  
       {statusMessage && (
         <div className="status-toast">
           {statusMessage}
         </div>
       )}
-
+  
       <main className="wallet-main">
         <section className="mnemonic-section">
           <div className="section-header">
@@ -290,7 +304,7 @@ function App() {
             >
               Generate New
             </button>
-            <button onClick={insertor} className="btn-primary">insert phrase</button>
+            <button onClick={insertor} className="btn-primary">Insert Phrase</button>
           </div>
           
           {mnemonic && (
@@ -310,7 +324,7 @@ function App() {
             </div>
           )}
         </section>
-
+  
         <section className="key-generation">
           <div className="section-header">
             <h2>Key Management</h2>
@@ -318,7 +332,7 @@ function App() {
               Generate Keypair
             </button>
           </div>
-
+  
           {generatedKeys.length > 0 && (
             <div className="key-list">
               {generatedKeys.map((key, i) => (
@@ -344,15 +358,15 @@ function App() {
                       Show Private Key
                     </button>
                     <h1 className="balance">
-                    Fetch
+                      {key.balance || 'Fetch'}
                     </h1>
                     <button 
                       className="refresh-button" 
                       onClick={() => {
-                        if (key.chain.toLowerCase() === 'sol') {  // FIXED: Added ()
-                          solBal(key.key);
+                        if (key.chain.toLowerCase() === 'sol') {
+                          solBal(key.key, key.chain, key.index);
                         } else {
-                          ethbal(key.key);  // FIXED: Removed index argument
+                          ethbal(key.key, key.chain, key.index);
                         }
                       }}
                     >
