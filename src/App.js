@@ -74,11 +74,33 @@ function App() {
   
 
 
-  const solethSecretKeyDeriver = (exp, val, k) => {
-    if (val.toLowerCase() === 'sol') {
-        secretKeyShowerSol(exp, k);
-    } else {
-        secretKeyShowerEth(exp, k);
+  const solethSecretKeyDeriver = (keyData) => {
+    try {
+      if (!keyData?.chain || keyData.index === undefined) {
+        throw new Error("Missing key information");
+      }
+  
+      const key = generatedKeys.find(k => 
+        k.chain === keyData.chain.toUpperCase() && 
+        k.index === keyData.index
+      );
+  
+      if (!key) {
+        throw new Error("Key not found");
+      }
+  
+      if (key.chain === 'SOL') {
+        console.log('Solana Private Key:', key.privateKey);
+        return key.privateKey;
+      } else if (key.chain === 'ETH') {
+        console.log('Ethereum Private Key:', key.privateKey);
+        return key.privateKey;
+      }
+      
+    } catch (error) {
+      console.error("Private key retrieval failed:", error);
+      showStatus("Failed to retrieve private key");
+      return null;
     }
   };
 
@@ -158,54 +180,54 @@ function App() {
     const seed = mnemonicToSeedSync(exp);
     const path = `m/44'/501'/${i}'/0'`;
     const derivedSeed = derivePath(path, seed.toString("hex")).key;
-    const secret = nacl.sign.keyPair.fromSeed(derivedSeed).secretKey;
-    const publicKey = Keypair.fromSecretKey(secret).publicKey.toBase58();
+    const keyPair = nacl.sign.keyPair.fromSeed(derivedSeed);
+    const keypair = Keypair.fromSecretKey(keyPair.secretKey);
+    
     setGeneratedKeys(prev => [...prev, { 
-      chain: 'SOL', 
-      key: publicKey, 
+      chain: 'SOL',
+      privateKey: bs58.encode(keyPair.secretKey), // Store full private key
+      publicKey: keypair.publicKey.toBase58(),
+      key: keypair.publicKey.toBase58(),
+      address: keypair.publicKey.toBase58(),
       index: i,
-      balance: null  // Initialize balance
+      isImported: false,
+      balance: null
     }]);
-    showStatus(`Solana key generated !`);
+    showStatus(`Solana key generated!`);
   };
 
 
   
 
   const ethkey = (exp, j) => {
-    // Convert mnemonic to Mnemonic object
-    const mnemonicObj = ethers.Mnemonic.fromPhrase(exp);
-    
-    // Generate wallet using Ethereum derivation path
-    const path = `m/44'/60'/0'/0/${j}`;
-    const wallet = ethers.HDNodeWallet.fromMnemonic(mnemonicObj, path);
-    
-    // Get the public key (compressed by default in Ethers v6)
-    const publicKey = wallet.publicKey;
-    
-    // Convert to uncompressed public key (65 bytes, starts with 0x04)
-    // Note: In Ethers v6, you might need to manually handle this
-    // Here's a workaround if uncompressed isn't directly available:
-    const signingKey = new ethers.SigningKey(wallet.privateKey);
-    const uncompressedPublicKey = signingKey.publicKey; // This should be uncompressed
-    
-    // Extract XY coordinates (remove 0x04 prefix if present)
-    const pubKeyBytes = ethers.getBytes(uncompressedPublicKey);
-    const xyBytes = pubKeyBytes.slice(1); // Remove first byte (0x04)
-    
-    // Hash the 64-byte XY coordinates with Keccak-256
-    const hash = ethers.keccak256(xyBytes);
-    
-    // Get last 20 bytes (40 hex characters) as address
-    const ethAddress = '0x' + hash.slice(-40);
-    
-    setGeneratedKeys(prev => [...prev, { 
-      chain: 'ETH', 
-      key: ethAddress, 
-      index: j,
-      balance: null  // Initialize balance
-    }]);
-    showStatus(`Ethereum address generated !`);
+    try {
+      // 1. Convert mnemonic to Mnemonic object with validation
+      const mnemonicObj = ethers.Mnemonic.fromPhrase(exp);
+      
+      // 2. Derive wallet using standard Ethereum path
+      const path = `m/44'/60'/0'/0/${j}`;
+      const wallet = ethers.HDNodeWallet.fromMnemonic(mnemonicObj, path);
+      
+      // 3. Get checksum address directly from wallet (more reliable)
+      const ethAddress = wallet.address;
+      
+      // 4. Store all key information in state
+      setGeneratedKeys(prev => [...prev, { 
+        chain: 'ETH',
+        privateKey: wallet.privateKey, // Store the full private key
+        publicKey: wallet.publicKey,   // Compressed public key
+        key: ethAddress,               // Display address
+        address: ethAddress,           // Actual address (with checksum)
+        index: j,
+        isImported: false,             // Mark as generated key
+        balance: null
+      }]);
+      
+      showStatus(`Ethereum address generated: ${ethAddress}`);
+    } catch (error) {
+      console.error("ETH Key Generation Error:", error);
+      showStatus("Failed to generate Ethereum address");
+    }
   };
 
 
@@ -297,31 +319,36 @@ function App() {
 
   const ethpublickey = (privateKeyHex) => {
     try {
-      // Validate and clean input
-      if (privateKeyHex.startsWith("0x")) {
-        privateKeyHex = privateKeyHex.slice(2);
-      }
-      if (!/^[0-9a-fA-F]{64}$/.test(privateKeyHex)) {
-        throw new Error("Invalid private key format");
-      }
+      // 1. Sanitize input
+      privateKeyHex = privateKeyHex.replace(/^0x/, '');
       
-      // Convert to bytes
+      // 2. Validate hex format
+      if (!/^[0-9a-fA-F]{64}$/.test(privateKeyHex)) {
+        throw new Error("Invalid private key - must be 64 hex characters");
+      }
+  
+      // 3. Convert to bytes
       const privateKeyBytes = hexToBytes(privateKeyHex);
       
-      // Get uncompressed public key (65 bytes)
+      // 4. Get uncompressed public key (65 bytes)
       const publicKeyBytes = getPublicKey(privateKeyBytes, false);
       
-      // Derive Ethereum address
+      // 5. Validate public key structure
+      if (publicKeyBytes[0] !== 0x04 || publicKeyBytes.length !== 65) {
+        throw new Error("Invalid public key format");
+      }
+  
+      // 6. Derive Ethereum address
       const pubKeyHash = keccak256(publicKeyBytes.slice(1)); // Remove 0x04 prefix
-      const address = '0x' + pubKeyHash.slice(-40).toLowerCase();
-      
+      const address = ethers.getAddress('0x' + pubKeyHash.slice(-40));
+  
       return {
         publicKey: bytesToHex(publicKeyBytes),
-        address: ethers.getAddress(address), // Proper checksum address
+        address: address,
         valid: true
       };
     } catch (error) {
-      console.error("ETH Key Error:", error);
+      console.error("ETH Key Error:", error.message);
       return { publicKey: "Invalid", address: "Invalid", valid: false };
     }
   };
@@ -369,7 +396,7 @@ function App() {
       if (choice === "eth") {
         const ethResult = ethpublickey(privateKey);
         if (!ethResult.valid) {
-          return showStatus("Invalid Ethereum private key");
+          return showStatus(`Invalid Ethereum private key: ${ethResult.error || "Invalid format"}`);
         }
   
         setGeneratedKeys(keys => [...keys, {
@@ -379,32 +406,34 @@ function App() {
           key: ethResult.address, // Using address as display key
           address: ethResult.address,
           index: ethIndex,
-          balance: null
+          balance: null,
+          isImported: true // Corrected to true for imported keys
         }]);
         setEthIndex(prev => prev + 1);
-        showStatus(`ETH Address: ${ethResult.address}`);
+        showStatus(`Imported ETH Address: ${ethResult.address}`);
   
       } else if (choice === "sol") {
         const solResult = solpublickey(privateKey);
         if (!solResult.valid) {
-          return showStatus("Invalid Solana private key");
+          return showStatus(`Invalid Solana private key: ${solResult.error || "Invalid format"}`);
         }
   
         setGeneratedKeys(keys => [...keys, {
           chain: "SOL",
-          privateKey, // Store in original base58 format
+          privateKey: privateKey, // Store in original base58 format
           publicKey: solResult.publicKey,
           key: solResult.publicKey, // PublicKey = Address in Solana
           address: solResult.publicKey,
           index: solIndex,
-          balance: null
+          balance: null,
+          isImported: true // Corrected to true for imported keys
         }]);
         setSolIndex(prev => prev + 1);
-        showStatus(`SOL Address: ${solResult.publicKey}`);
+        showStatus(`Imported SOL Address: ${solResult.publicKey}`);
       }
     } catch (error) {
       console.error("Key addition failed:", error);
-      showStatus("Failed to process private key. Check console for details.");
+      showStatus(`Failed to process private key: ${error.message}`);
     }
   };
   
@@ -473,9 +502,9 @@ function App() {
               {generatedKeys.map((key, i) => (
                 <div key={i} className="key-item">
                   <div className="key-meta">
-                    <span className={`key-chain ${key.chain.toLowerCase()}`}>
-                      {key.chain} #{key.index + 1}
-                    </span>
+                  <span className={`key-chain ${(key.chain || '').toLowerCase()}`}>
+                    {key.chain} #{key.index + 1}
+                  </span>
                   </div>
                   <div className="key-content">
                     <code className="key-value">{key.key}</code>
@@ -488,7 +517,10 @@ function App() {
                     <button
                       className="btn-primary"
                       id="private-key"
-                      onClick={() => solethSecretKeyDeriver(mnemonic, key.chain.toLowerCase(), key.index)}
+                      onClick={() => solethSecretKeyDeriver({
+                        chain: key.chain,
+                        index: key.index
+                      })}
                     >
                       Show Private Key
                     </button>
