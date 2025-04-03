@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getPublicKey } from '@noble/secp256k1';
 import { generateMnemonic, mnemonicToSeedSync } from "bip39";
 import { Buffer } from 'buffer';
 import { derivePath } from 'ed25519-hd-key';
@@ -11,6 +12,7 @@ import { ethers } from "ethers";
 import { HDNodeWallet, Mnemonic, computeAddress, computePublicKey } from 'ethers';
 const { Connection, PublicKey, clusterApiUrl } = require("@solana/web3.js");
 const { Alchemy, Network } = require("alchemy-sdk");
+
 
 
 
@@ -264,7 +266,18 @@ function App() {
       console.error(`Error fetching SOL balance for ${address}:`, error);
     }
   };
+
+  const hexToBytes = (hex) => {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+      bytes[i/2] = parseInt(hex.substr(i, 2), 16);
+    }
+    return bytes;
+  };
   
+  const bytesToHex = (bytes) => {
+    return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  };
 
   const keygen = () => {
     if (!mnemonic) return showStatus("Generate a mnemonic first!");
@@ -281,6 +294,122 @@ function App() {
       showStatus("Invalid choice. Please enter 'eth' or 'sol'.");
     }
   };
+
+  const ethpublickey = (privateKeyHex) => {
+    try {
+      // Validate and clean input
+      if (privateKeyHex.startsWith("0x")) {
+        privateKeyHex = privateKeyHex.slice(2);
+      }
+      if (!/^[0-9a-fA-F]{64}$/.test(privateKeyHex)) {
+        throw new Error("Invalid private key format");
+      }
+      
+      // Convert to bytes
+      const privateKeyBytes = hexToBytes(privateKeyHex);
+      
+      // Get uncompressed public key (65 bytes)
+      const publicKeyBytes = getPublicKey(privateKeyBytes, false);
+      
+      // Derive Ethereum address
+      const pubKeyHash = keccak256(publicKeyBytes.slice(1)); // Remove 0x04 prefix
+      const address = '0x' + pubKeyHash.slice(-40).toLowerCase();
+      
+      return {
+        publicKey: bytesToHex(publicKeyBytes),
+        address: ethers.getAddress(address), // Proper checksum address
+        valid: true
+      };
+    } catch (error) {
+      console.error("ETH Key Error:", error);
+      return { publicKey: "Invalid", address: "Invalid", valid: false };
+    }
+  };
+  
+  const solpublickey = (privateKeyBase58) => {
+    try {
+      // Strict format validation
+      if (!/^[1-9A-HJ-NP-Za-km-z]{88}$/.test(privateKeyBase58)) {
+        throw new Error("Invalid Base58 format");
+      }
+  
+      const decoded = bs58.decode(privateKeyBase58);
+      
+      if (decoded.length !== 64) {
+        throw new Error(`Invalid key length: ${decoded.length} bytes (needs 64)`);
+      }
+  
+      const keypair = Keypair.fromSecretKey(decoded);
+      return {
+        publicKey: keypair.publicKey.toBase58(),
+        valid: true
+      };
+    } catch (error) {
+      console.error("SOL Key Error:", error);
+      return { publicKey: "Invalid", valid: false };
+    }
+  };
+  
+  const keyAdder = () => {
+    if (!mnemonic) {
+      return showStatus("Generate a mnemonic first!");
+    }
+  
+    const choice = prompt("Enter 'eth' for Ethereum or 'sol' for Solana:")?.trim().toLowerCase();
+    if (!['eth', 'sol'].includes(choice)) {
+      return showStatus("Invalid choice. Please enter 'eth' or 'sol'.");
+    }
+  
+    const privateKey = prompt("Enter Private Key")?.trim();
+    if (!privateKey) {
+      return showStatus("Private key cannot be empty.");
+    }
+  
+    try {
+      if (choice === "eth") {
+        const ethResult = ethpublickey(privateKey);
+        if (!ethResult.valid) {
+          return showStatus("Invalid Ethereum private key");
+        }
+  
+        setGeneratedKeys(keys => [...keys, {
+          chain: "ETH",
+          privateKey: `0x${privateKey.replace(/^0x/, '')}`, // Standardized format
+          publicKey: ethResult.publicKey,
+          key: ethResult.address, // Using address as display key
+          address: ethResult.address,
+          index: ethIndex,
+          balance: null
+        }]);
+        setEthIndex(prev => prev + 1);
+        showStatus(`ETH Address: ${ethResult.address}`);
+  
+      } else if (choice === "sol") {
+        const solResult = solpublickey(privateKey);
+        if (!solResult.valid) {
+          return showStatus("Invalid Solana private key");
+        }
+  
+        setGeneratedKeys(keys => [...keys, {
+          chain: "SOL",
+          privateKey, // Store in original base58 format
+          publicKey: solResult.publicKey,
+          key: solResult.publicKey, // PublicKey = Address in Solana
+          address: solResult.publicKey,
+          index: solIndex,
+          balance: null
+        }]);
+        setSolIndex(prev => prev + 1);
+        showStatus(`SOL Address: ${solResult.publicKey}`);
+      }
+    } catch (error) {
+      console.error("Key addition failed:", error);
+      showStatus("Failed to process private key. Check console for details.");
+    }
+  };
+  
+
+  
 
   return (
     <div className="wallet-container">
@@ -324,6 +453,11 @@ function App() {
             </div>
           )}
         </section>
+
+        <button onClick={keyAdder} className="btn-secondary">
+              Import private key
+        </button>
+        {/* for adding privatekey */}
   
         <section className="key-generation">
           <div className="section-header">
@@ -331,6 +465,7 @@ function App() {
             <button onClick={keygen} className="btn-secondary">
               Generate Keypair
             </button>
+
           </div>
   
           {generatedKeys.length > 0 && (
