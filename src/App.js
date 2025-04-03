@@ -441,92 +441,99 @@ function App() {
   
 
   return (
-    <div className="wallet-container">
-      <header className="wallet-header">
-        <h1 className="wallet-title">WALLATION</h1>
-      </header>
-  
-      {statusMessage && (
-        <div className="status-toast">
-          {statusMessage}
-        </div>
-      )}
-  
-      <main className="wallet-main">
-        <section className="mnemonic-section">
-          <div className="section-header">
-            <h2>Recovery Phrase</h2>
-            <button 
-              onClick={mnemonicgen}
-              className="btn-primary"
-            >
+  <div className="wallet-container">
+    <header className="wallet-header">
+      <h1 className="wallet-title">WALLATION</h1>
+    </header>
+
+    {statusMessage && (
+      <div className="status-toast">
+        {statusMessage}
+      </div>
+    )}
+
+    <main className="wallet-main">
+      {/* Recovery Phrase Section */}
+      <section className="mnemonic-section">
+        <div className="section-header">
+          <h2>Recovery Phrase</h2>
+          <div className="button-group">
+            <button onClick={insertor} className="btn-secondary">
+              Insert Phrase
+            </button>
+            <button onClick={mnemonicgen} className="btn-primary">
               Generate New
             </button>
-            <button onClick={insertor} className="btn-primary">Insert Phrase</button>
           </div>
-          
-          {mnemonic && (
-            <div className="mnemonic-phrase">
-              {mnemonic.split(' ').map((word, i) => (
-                <div key={i} className="mnemonic-word">
-                  <span className="word-number">{i + 1}.</span>
-                  {word}
-                </div>
-              ))}
-              <button 
-                onClick={() => copyToClipboard(mnemonic)}
-                className="copy-button"
-              >
-                Copy Phrase
-              </button>
-            </div>
-          )}
-        </section>
+        </div>
+        
+        {mnemonic && (
+          <div className="mnemonic-phrase">
+            {mnemonic.split(' ').map((word, i) => (
+              <div key={i} className="mnemonic-word">
+                <span className="word-number">{i + 1}.</span>
+                {word}
+              </div>
+            ))}
+            <button 
+              onClick={() => copyToClipboard(mnemonic)}
+              className="copy-button"
+            >
+              Copy Phrase
+            </button>
+          </div>
+        )}
+      </section>
 
-        <button onClick={keyAdder} className="btn-secondary">
-              Import private key
-        </button>
-        {/* for adding privatekey */}
-  
-        <section className="key-generation">
-          <div className="section-header">
-            <h2>Key Management</h2>
-            <button onClick={keygen} className="btn-secondary">
+      {/* Key Management Section */}
+      <section className="key-management">
+        <div className="section-header">
+          <h2>Key Management</h2>
+          <div className="button-group">
+            <button onClick={keyAdder} className="btn-secondary">
+              Import Private Key
+            </button>
+            <button onClick={keygen} className="btn-primary">
               Generate Keypair
             </button>
-
           </div>
-  
-          {generatedKeys.length > 0 && (
-            <div className="key-list">
-              {generatedKeys.map((key, i) => (
-                <div key={i} className="key-item">
-                  <div className="key-meta">
+        </div>
+
+        {generatedKeys.length > 0 && (
+          <div className="key-list">
+            {generatedKeys.map((key, i) => (
+              <div key={i} className="key-item">
+                <div className="key-header">
                   <span className={`key-chain ${(key.chain || '').toLowerCase()}`}>
                     {key.chain} #{key.index + 1}
                   </span>
-                  </div>
-                  <div className="key-content">
-                    <code className="key-value">{key.key}</code>
+                  <div className="key-actions">
                     <button 
                       onClick={() => copyToClipboard(key.key)}
                       className="copy-icon"
+                      aria-label="Copy public key"
                     >
                       📋
                     </button>
                     <button
-                      className="btn-primary"
-                      id="private-key"
+                      className="btn-secondary"
                       onClick={() => solethSecretKeyDeriver({
                         chain: key.chain,
                         index: key.index
                       })}
                     >
-                      Show Private Key
+                      Private Key
                     </button>
-                    <h1 className="balance">
-                      {key.balance || 'Fetch'}
-                    </h1>
+                  </div>
+                </div>
+                
+                <div className="key-content">
+                  <code className="key-value">{key.key}</code>
+                  
+                  <div className="balance-group">
+                    <span className="balance">
+                      {key.balance || 'Not fetched'}
+                    </span>
                     <button 
                       className="refresh-button" 
                       onClick={() => {
@@ -536,17 +543,19 @@ function App() {
                           ethbal(key.key, key.chain, key.index);
                         }
                       }}
+                      aria-label="Refresh balance"
                     >
-                      ⟳
+                      ⟳ Refresh
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
-    </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  </div>
   );
 }
 
