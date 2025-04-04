@@ -23,7 +23,7 @@ async function transferSOL(pvtKey, address, amount) {
         console.log("🚀 Sending transaction...");
         const signature = await sendAndConfirmTransaction(connection, transaction, [senderKeypair]);
         
-        showStaus("✅ Transaction Successful!");
+        console.log("✅ Transaction Successful!");
         console.log("🔗 Transaction Signature:", signature);
         console.log(`🔍 Check transaction: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
     } catch (error) {
