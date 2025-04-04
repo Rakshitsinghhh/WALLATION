@@ -12,6 +12,8 @@ import { ethers } from "ethers";
 import { HDNodeWallet, Mnemonic, computeAddress, computePublicKey } from 'ethers';
 const { Connection, PublicKey, clusterApiUrl } = require("@solana/web3.js");
 const { Alchemy, Network } = require("alchemy-sdk");
+const transferSOL = require("./transfer-sol");
+
 
 
 
@@ -265,8 +267,8 @@ function App() {
   
 
   // Use a free public Solana RPC (No API Key Required)
-  const SOLANA_RPC_URL = "https://solana.publicnode.com";
-  const connection = new Connection(SOLANA_RPC_URL);
+  const SOLANA_RPC_URL = "https://api.devnet.solana.com";
+  const connection = new Connection(SOLANA_RPC_URL,"confirmed");
   
   const solBal = async (address, chain, index) => {
     showStatus("Please wait...");
@@ -436,6 +438,31 @@ function App() {
       showStatus(`Failed to process private key: ${error.message}`);
     }
   };
+
+  const ethsol = () =>{
+      const choice = prompt("Enter 'eth' for Ethereum or 'sol' for Solana:")?.trim().toLowerCase();
+
+      if (!['eth', 'sol'].includes(choice)) {
+        return showStatus("Invalid choice. Please enter 'eth' or 'sol'.");
+      }
+
+      if (choice === "eth") {
+        const pvtkey=prompt("enter sender private key");
+        const address=prompt("enter reciever's address");
+        const amount= prompt("enter amount you want to transfer")
+
+
+      } 
+    
+    if (choice === "sol") {
+      const pvtkey=prompt("enter sender private key");
+      const address=prompt("enter reciever's address");
+      const amount= prompt("enter amount you want to transfer")
+
+      transferSOL(pvtkey,address,amount);
+    }
+
+  }
   
 
   
@@ -463,6 +490,9 @@ function App() {
             </button>
             <button onClick={mnemonicgen} className="btn-primary">
               Generate New
+            </button>
+            <button onClick={ethsol} className="btn-primary">
+              Transfer Funds
             </button>
           </div>
         </div>
